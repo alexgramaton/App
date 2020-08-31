@@ -50,6 +50,16 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
+			if ($exception instanceof \Illuminate\Database\Eloquent\ModelNotFoundException)
+      {
+        return response()->json([
+          'message' => 'Resource not found'
+        ], 404);
+			}
+			//if ($exception instanceof \Spatie\Permission\Exceptions\UnauthorizedException)
+			//{
+			//		throw new HttpException($exception->getCode(), 'Access Denied');
+			//}
         return parent::render($request, $exception);
     }
 }

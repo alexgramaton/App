@@ -3,40 +3,53 @@
 namespace App\Http\Controllers\API;
 
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\API\BaseController as BaseController;
+use App\User;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Hash;
+use Validator;
 
-class LoginController extends Controller
+class LoginController extends BaseController
 {
-   /**
-     * Handle the incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function __invoke(Request $request)
+    public function login(Request $request)
     {
-        $credentials = $request->only('email', 'password');
+        //if(Auth::attempt(['email' => $request->email, 'password' => $request->password])){ 
+        //    $user = Auth::user(); 
+        //    $success['token'] =  $user->createToken('MyApp')-> accessToken;
+        //    return $this->sendResponse($success, 'User login successfully.');
+        //} 
+        //else{ 
+        //    return $this->sendError('Unauthorised.', ['error'=>'Unauthorised']);
+				//}
+				$data = $request->validate([
+					'email' 	 => 'required|string|email|max:255',
+					'password' => 'required|string|min:8',
+				]);
+				$user = User::where('email', $request->email)->first();
+				if (!$user) {
+        	return response([
+            'error' => ['User not found'],
+					], 401);
+				}
+				if (!$user || !Hash::check($request->password, $user->password) || $user->type != 1) {
+        	return response([
+            'error' => ['The provided credentials are incorrect.'],
+					], 401);
+				}
+				if ($user->email_verified != 1) {
+        	return response([
+            'error' => ['Account not verifed.'],
+					], 401);
+				}
+				$user->tokens()->delete();
 
-        if (!Auth::attempt($credentials)) {
-            return response()->json([
-                'message' => 'You cannot sign with those credentials',
-                'errors' => 'Unauthorised'
-            ], 401);
-        }
-
-        $token = Auth::user()->createToken(config('app.name'));
-        $token->token->expires_at = $request->remember_me ?
-            Carbon::now()->addMonth() :
-            Carbon::now()->addDay();
-
-        $token->token->save();
-
-        return response()->json([
-            'token_type' => 'Bearer',
-            'token' => $token->accessToken,
-            'expires_at' => Carbon::parse($token->token->expires_at)->toDateTimeString()
-        ], 200);
-    }
+				$token = $user->createToken($request->email)->plainTextToken;
+				$response = [
+						'success' => true,
+						'id'			=> $user->id,
+						'email'		=> $user->email,
+						'token'   => $token,
+        ];
+      	return response()->json($response, 200);
+		}
 }

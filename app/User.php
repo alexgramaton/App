@@ -2,15 +2,16 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Passport\HasApiTokens;
+use Illuminate\Database\Eloquent\Model;
+use Laravel\Sanctum\HasApiTokens;
+use App\Models\Company;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable;
+     use HasApiTokens, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -18,7 +19,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'name', 'surname', 'patronymic', 'email', 'phone', 'password',
+			'email', 'password', 'email_verified', 'email_verification_token',
     ];
 
     /**
@@ -27,7 +28,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
-			'remember_token',
+        'password', 'remember_token',
     ];
 
     /**
@@ -37,5 +38,19 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-    ];
+		];
+		
+		/**
+     * Add a mutator to ensure hashed passwords
+     */
+
+		public function isAdmin()
+		{
+    	return $this->type == 0;
+		}	
+		
+		public function companies()
+		{
+			return $this->hasMany(Company::class);
+		}
 }
